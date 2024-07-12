@@ -41,10 +41,12 @@ func main() {
 	lastPublicIp := getip()
 
 	var intervalSeconds, cfTtl int
-	var cfProxied bool
+	var cfProxied, generateConfig, forceFirst bool
 	var cfZoneId, cfDnsRecordId, cfApiEmail, cfApiKey, cfDnsRecordName, cfComment, configFilePath string
 	flag.IntVar(&intervalSeconds, "interval", 600, "Interval in seconds to check for IP changes")
 	flag.StringVar(&configFilePath, "config", "", "Path to the config file")
+	flag.BoolVar(&generateConfig, "generate", false, "Generate a config file with the provided parameters")
+	flag.BoolVar(&forceFirst, "force", false, "Force the first update to Cloudflare")
 	flag.StringVar(&cfZoneId, "zone", "", "Cloudflare Zone ID")
 	flag.StringVar(&cfDnsRecordId, "record", "", "Cloudflare DNS Record ID")
 	flag.StringVar(&cfApiEmail, "email", "", "Cloudflare API Email")
@@ -54,6 +56,36 @@ func main() {
 	flag.BoolVar(&cfProxied, "proxied", false, "Whether the DNS Record is proxied by Cloudflare or not")
 	flag.IntVar(&cfTtl, "ttl", 3600, "TTL of the DNS Record")
 	flag.Parse()
+
+	if generateConfig {
+		config := Config{
+			IntervalSeconds: intervalSeconds,
+			CloudflareParams: CloudflareParams{
+				ZoneId:        cfZoneId,
+				DnsRecordId:   cfDnsRecordId,
+				ApiEmail:      cfApiEmail,
+				ApiKey:        cfApiKey,
+				DnsRecordName: cfDnsRecordName,
+				Comment:       cfComment,
+				Proxied:       cfProxied,
+				Ttl:           cfTtl,
+			},
+		}
+
+		configJson, err := json.MarshalIndent(config, "", "    ")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		err = os.WriteFile("config.json", configJson, 0644)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("Config file generated successfully")
+	}
 
 	if configFilePath != "" {
 		config, err := readConfig(configFilePath)
@@ -75,11 +107,15 @@ func main() {
 
 	for {
 		currentPublicIp := getip()
-		if lastPublicIp != currentPublicIp {
-			fmt.Println("IP changed: ", lastPublicIp, " -> ", currentPublicIp)
+		if lastPublicIp != currentPublicIp || forceFirst {
+			if !forceFirst {
+				fmt.Println("IP changed: ", lastPublicIp, " -> ", currentPublicIp)
+			}
 
 			updateCloudflare(currentPublicIp, cfZoneId, cfDnsRecordId, cfApiEmail, cfApiKey, cfDnsRecordName, cfComment, cfProxied)
 			lastPublicIp = currentPublicIp
+
+			forceFirst = false
 		}
 
 		time.Sleep(time.Duration(intervalSeconds) * time.Second)
