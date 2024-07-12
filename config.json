@@ -1,0 +1,13 @@
+{
+    "intervalSeconds": 600,
+    "cloudflareParams": {
+        "zoneId": "",
+        "dnsRecordId": "",
+        "apiEmail": "",
+        "apiKey": "",
+        "dnsRecordName": "",
+        "comment": "",
+        "proxied": false,
+        "ttl": 3600
+    }
+}
