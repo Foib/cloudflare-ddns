@@ -123,8 +123,7 @@ func main() {
 }
 
 func getip() string {
-	// URL for getting the public IP
-	req, err := http.Get("https://86qkf2ogz9.execute-api.eu-central-1.amazonaws.com/")
+	req, err := http.Get("https://checkip.amazonaws.com/")
 	if err != nil {
 		return err.Error()
 	}
